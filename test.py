@@ -7,7 +7,9 @@
 import numpy as np
 
 
-a = np.array([[2, 2], [3, 3]])
-b = np.array([[2, 2]])
+a = np.array([-635.55183273, 619.41249917])
+b = 161.2746500961695
 
-print(a - b)
+print(a/ b)
+a = np.linspace(-5, 5, 500).reshape(-1, 1)
+print(a)

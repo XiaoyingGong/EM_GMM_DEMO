@@ -94,7 +94,7 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
     N = len(data[0])
     dim = len(data)
     k = len(prev_weights)
-    response = np.zeros([N, k])
+    response = np.zeros([N, k], dtype=np.float)
 
     for t in range(MaxIter):
         if t > 0:
@@ -107,12 +107,10 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
 
             # 更新权重 weight^(i+1)
             next_weights = np.sum(response, axis=0) / N
-
             # 更新均值 next_mus^(i+1)
             for l in range(k):
-                print(np.sum(data.T * response[:, l].reshape(-1, 1)))
-                next_mus[l, :] = np.sum(data.T * response[:, l].reshape(-1, 1) / np.sum(response[:, l]))
-            print(next_mus)
+                next_mus[l, :] = np.sum(data.T * (response[:, l].reshape(-1, 1)), axis=0) / np.sum(response[:, l])
+
             # 更新sigma
             for l in range(k):
                 zero_mean_data = data.T - next_mus[l, :].reshape(1, -1)
@@ -120,10 +118,6 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
                 for i in range(N):
                     covariances[:, :, i] = zero_mean_data[i,:].reshape(1, -1).T * zero_mean_data[i,:].reshape(1, -1) * response[i, l]
                 next_sigmas[l, :, :] = np.sum(covariances, axis=2) / np.sum(response[:, l])
-                # temp_sigmas = np.zeros(initial_sigmas.shape)
-                # for j in range(dim):
-                #     temp_sigmas[l, j, j] = next_sigmas[l, j, j]
-                # next_sigmas[l, :, :] = temp_sigmas[l, :, :]
             prev_mus = next_mus
             prev_sigmas = next_sigmas
             prev_weights = next_weights
@@ -138,31 +132,47 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
         gmm_pd = gaussian_mixture_model(next_mus, next_sigmas, next_weights,
                                         np.vstack((x_show_flatten, y_show_flatten)))
         gmm_pd_show = gmm_pd.reshape(200, 200)
-        # print(gmm_pd)
+
         plt.figure("gmm_contour_results")
         colors = ['green', 'red', 'blue', 'orange']
-        # print(gmm_pd.shape)
+
         plt.contour(x_show, y_show, gmm_pd_show)
         plt.scatter(data[0, :], data[1, :], s=1)
-        # plt.scatter(data[0, :], data[], rv.pdf(pos))
-        plt.show()
 
+        plt.show()
     return next_mus, next_sigmas, next_weights
 
-# 主函数
-def processing():
+# 主函数1
+def processing_1():
     # 产生数据
     mus = np.array([[-3, 4], [0, 0], [3, 4]])
     sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
-    num = 1000
+    num = 200
     component_rate = np.array([0.3, 0.3, 0.4])
     data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
     # 计算与更新
-    initial_mus = np.array([[-5, -1], [-1, -1], [4, -1]])
-    initial_sigmas = np.array([[[1, 0], [0, 1]], [[1, 0], [0, 1]], [[1, 0], [0, 1]]])
+    initial_mus = np.array([[-5, -1], [-1, -1], [4, -1]], dtype=np.float)
+    initial_sigmas = np.array([[[1, 0], [0, 1]], [[1, 0], [0, 1]], [[1, 0], [0, 1]]], dtype=np.float)
     initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
     start_time = time.time()
-    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=8)
+    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20)
+    end_time = time.time()
+    print(end_time - start_time)
+    return mus_results, sigmas_results, weights_results
+
+def processing_2():
+    # 产生数据
+    mus = np.array([[-3, 4], [0, 0], [3, 4]])
+    sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
+    num = 200
+    component_rate = np.array([0.3, 0.3, 0.4])
+    data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
+    # 计算与更新
+    initial_mus = np.array([[-5, -1], [-1, -1], [4, -1]], dtype=np.float)
+    initial_sigmas = np.array([[[1, 0], [0, 1]], [[1, 0], [0, 1]], [[1, 0], [0, 1]]], dtype=np.float)
+    initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
+    start_time = time.time()
+    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20)
     end_time = time.time()
     print(end_time - start_time)
     return mus_results, sigmas_results, weights_results
@@ -184,13 +194,14 @@ def generate_gmm_data_test():
 def gaussian_mixture_model_test():
     mus = np.array([[1, 1], [2, 5], [5, 5], [5, 3]])
     sigmas = np.array([[[0.5, 0], [0, 0.5]], [[0.5, 0], [0, 0.2]], [[0.3, 0], [0, 0.3]], [[0.1, 0], [0, 0.3]]])
-    num = 1000
+    num = 500
     component_rate = np.array([0.3, 0.3, 0.2, 0.2])
     data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
 
     x_show, y_show = np.mgrid[-10:10:.1, -10:10:.1]
     x_show_flatten = x_show.flatten()
     y_show_flatten = y_show.flatten()
+    mus_initial = np.hstack((np.ones([num, 1])))
     mus_initial = np.array([[-5, 1], [-1, 1], [3, 1], [5, 1]], dtype=float)
     sigmas_initial = np.array([[[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]]], dtype=float)
     component_rete_initial = np.array([0.25, 0.25, 0.25, 0.25])
@@ -221,5 +232,5 @@ if __name__ == '__main__':
     # a = gaussian(np.array([0.5, -0.2]), np.array([[2.0, 0], [0, 0.5]]), np.array([[0, 0.5, 1, 2, 3, 4, 5], [0, -0.2, 1, 2, 3, 4, 5]]))
     # print(a)
     # gaussian_mixture_model_test()
-    mus, sigmas, weights = processing()
+    mus, sigmas, weights = processing_2()
     print("mus:", mus, "sigmas:", sigmas, "weights:", weights)
