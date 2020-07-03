@@ -1,6 +1,12 @@
 # author: 龚潇颖(Xiaoying Gong)
-# date： 2020/7/1 16:03  
+# date： 2020/7/3 15:50  
 # IDE：PyCharm 
+# des: 使用某一个点当做质心，即均值点
+# input(s)：
+# output(s)：
+# author: 龚潇颖(Xiaoying Gong)
+# date： 2020/7/1 16:03
+# IDE：PyCharm
 # des:
 # input(s)：
 # output(s)：
@@ -110,9 +116,9 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
 
             # 更新权重 weight^(i+1)
             next_weights = np.sum(response, axis=0) / N
-            # 更新均值 next_mus^(i+1)
-            for l in range(k):
-                next_mus[l, :] = np.sum(data.T * (response[:, l].reshape(-1, 1)), axis=0) / np.sum(response[:, l])
+            # 更新均值 next_mus^(i+1) 现在就不更新了 均值不会变化
+            # for l in range(k):
+            #         next_mus[l, :] = np.sum(data.T * (response[:, l].reshape(-1, 1)), axis=0) / np.sum(response[:, l])
 
             # 更新sigma
             for l in range(k):
@@ -138,46 +144,11 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
             gmm_pd_show = gmm_pd.reshape(200, 200)
             plt.figure("gmm_contour_results")
             plt.contour(x_show, y_show, gmm_pd_show)
+            plt.scatter(next_mus[:, 0], next_mus[:, 1], s=10, c='red')
             plt.scatter(data[0, :], data[1, :], s=1)
             plt.show()
     return next_mus, next_sigmas, next_weights
 
-# 主函数1
-def processing_1():
-    # 产生数据
-    mus = np.array([[-3, 4], [0, 0], [3, 4]])
-    sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
-    num = 1000
-    component_rate = np.array([0.3, 0.3, 0.4])
-    data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
-    # 计算与更新
-    initial_mus = np.array([[-5, -1], [-1, -1], [4, -1]], dtype=np.float)
-    initial_sigmas = np.array([[[1, 0], [0, 1]], [[1, 0], [0, 1]], [[1, 0], [0, 1]]], dtype=np.float)
-    initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
-    start_time = time.time()
-    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20)
-    end_time = time.time()
-    print(end_time - start_time)
-    return mus_results, sigmas_results, weights_results
-
-def processing_2():
-    # 产生数据
-    mus = np.array([[-3, 4], [0, 0], [3, 4]])
-    sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
-    num = 500
-    component_rate = np.array([0.3, 0.3, 0.4])
-    data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
-    # 计算与更新
-    dim = len(mus[0])
-    initial_mus = np.hstack((np.linspace(-5, 5, num, dtype=np.float).reshape([-1, 1]), np.ones([num, 1], dtype=np.float)))
-    initial_sigmas = np.zeros([num, dim, dim], dtype=np.float)
-    initial_sigmas[:] = np.array([[0.1, 0], [0, 0.1]])
-    initial_weights = np.ones(num, dtype=np.float) / num
-    start_time = time.time()
-    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20, is_draw=True)
-    end_time = time.time()
-    print(end_time - start_time)
-    return mus_results, sigmas_results, weights_results
 
 # -------------------------------- 以下为测试 --------------------------------
 # 对于 generate_gmm_data(mus, sigmas, num, component_rate)的测试
@@ -192,30 +163,30 @@ def generate_gmm_data_test():
     plt.scatter(data[0, :], data[1, :], s=1, c=[colors[int(Z[i]%len(colors))] for i in range(num)])
     plt.show()
 
-# 对于高斯混合模型的测试
-def gaussian_mixture_model_test():
-    mus = np.array([[1, 1], [2, 5], [5, 5], [5, 3]])
-    sigmas = np.array([[[0.5, 0], [0, 0.5]], [[0.5, 0], [0, 0.2]], [[0.3, 0], [0, 0.3]], [[0.1, 0], [0, 0.3]]])
+# 每个生成的component中选一个点作为质心
+def processing():
+    # 产生数据
+    mus = np.array([[-3, 4], [0, 0], [3, 4]])
+    sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
     num = 1000
-    component_rate = np.array([0.3, 0.3, 0.2, 0.2])
+    component_rate = np.array([0.3, 0.3, 0.4])
     data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
-
-    x_show, y_show = np.mgrid[-10:10:.1, -10:10:.1]
-    x_show_flatten = x_show.flatten()
-    y_show_flatten = y_show.flatten()
-    mus_initial = np.array([[-5, 1], [-1, 1], [3, 1], [5, 1]], dtype=float)
-    sigmas_initial = np.array([[[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]]], dtype=float)
-    component_rete_initial = np.array([0.25, 0.25, 0.25, 0.25])
-    gmm_pd = gaussian_mixture_model(mus_initial, sigmas_initial, component_rete_initial, np.vstack((x_show_flatten, y_show_flatten)))
-    gmm_pd_show = gmm_pd.reshape(200, 200)
-    # print(gmm_pd)
-    plt.figure("gmm_contour_results")
-    colors = ['green', 'red', 'blue', 'orange']
-    # print(gmm_pd.shape)
-    plt.contour(x_show, y_show, gmm_pd_show)
-    plt.scatter(data[0, :], data[1, :], s=1, c=[colors[int(Z[i]%len(colors))] for i in range(num)])
-    # plt.scatter(data[0, :], data[], rv.pdf(pos))
-    plt.show()
+    z_0 = np.argwhere(Z == 0)
+    z_1 = np.argwhere(Z == 1)
+    z_2 = np.argwhere(Z == 2)
+    mu_1 = data[:, z_0[int(np.floor(len(z_0) / 2))]].flatten()
+    mu_2 = data[:, z_1[int(np.floor(len(z_1) / 2))]].flatten()
+    mu_3 = data[:, z_2[int(np.floor(len(z_2) / 2))]].flatten()
+    # 计算与更新
+    # 现在的mu是某三个点作为质心 即均值
+    initial_mus = np.array([mu_1, mu_2, mu_3], dtype=np.float)
+    initial_sigmas = np.array([[[1, 0], [0, 1]], [[1, 0], [0, 1]], [[1, 0], [0, 1]]], dtype=np.float)
+    initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
+    start_time = time.time()
+    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20)
+    end_time = time.time()
+    print(end_time - start_time)
+    return mus_results, sigmas_results, weights_results
 
 
 if __name__ == '__main__':
@@ -233,5 +204,5 @@ if __name__ == '__main__':
     # a = gaussian(np.array([0.5, -0.2]), np.array([[2.0, 0], [0, 0.5]]), np.array([[0, 0.5, 1, 2, 3, 4, 5], [0, -0.2, 1, 2, 3, 4, 5]]))
     # print(a)
     # gaussian_mixture_model_test()
-    mus, sigmas, weights = processing_2()
+    mus, sigmas, weights = processing()
     print("mus:", mus, "sigmas:", sigmas, "weights:", weights)
