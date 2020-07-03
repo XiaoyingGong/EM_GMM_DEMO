@@ -4,11 +4,13 @@
 # des:
 # input(s)：
 # output(s)：
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 import mpl_toolkits.mplot3d
 
+add_4_valid = 0.000000001
 # 每个产生的高斯的个数为多少
 # 产生的数据存在着一定数量的偏差，不是严格按照一定比例
 # component_rate:
@@ -61,6 +63,8 @@ def gaussian(mu, sigma, data):
     pos = np.empty((1,) + (data.shape[1], ) + (dim,))
     for i in range(dim):
         pos[:, :, i] = data[i, :]
+    # print(sigma)
+    # print("行列式:", np.linalg.det(sigma))
     rv = stats.multivariate_normal(mu, sigma)
     return rv.pdf(pos)
 
@@ -78,22 +82,90 @@ def gaussian_mixture_model(mus, sigmas, alphas, data):
     return pd
 
 # E-M algorithm
-def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights):
-    return
+def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 20):
+    prev_mus = initial_mus
+    prev_sigmas = initial_sigmas
+    prev_weights = initial_weights
+
+    next_mus = np.zeros(initial_mus.shape, dtype=np.float)
+    next_sigmas = np.zeros(initial_sigmas.shape, dtype=np.float)
+    next_weights = np.zeros(initial_weights.shape, dtype=np.float)
+
+    N = len(data[0])
+    dim = len(data)
+    k = len(prev_weights)
+    response = np.zeros([N, k])
+
+    for t in range(MaxIter):
+        if t > 0:
+            # 计算责任矩阵 compute the responsibilities
+            for l in range(k):
+                response[:, l] = gaussian(prev_mus[l], prev_sigmas[l], data)
+
+            response_sum = np.sum(response, axis=1).reshape(-1, 1)
+            response = response / response_sum
+
+            # 更新权重 weight^(i+1)
+            next_weights = np.sum(response, axis=0) / N
+
+            # 更新均值 next_mus^(i+1)
+            for l in range(k):
+                print(np.sum(data.T * response[:, l].reshape(-1, 1)))
+                next_mus[l, :] = np.sum(data.T * response[:, l].reshape(-1, 1) / np.sum(response[:, l]))
+            print(next_mus)
+            # 更新sigma
+            for l in range(k):
+                zero_mean_data = data.T - next_mus[l, :].reshape(1, -1)
+                covariances = np.zeros([dim, dim, N])
+                for i in range(N):
+                    covariances[:, :, i] = zero_mean_data[i,:].reshape(1, -1).T * zero_mean_data[i,:].reshape(1, -1) * response[i, l]
+                next_sigmas[l, :, :] = np.sum(covariances, axis=2) / np.sum(response[:, l])
+                # temp_sigmas = np.zeros(initial_sigmas.shape)
+                # for j in range(dim):
+                #     temp_sigmas[l, j, j] = next_sigmas[l, j, j]
+                # next_sigmas[l, :, :] = temp_sigmas[l, :, :]
+            prev_mus = next_mus
+            prev_sigmas = next_sigmas
+            prev_weights = next_weights
+        else:
+            next_mus = prev_mus
+            next_sigmas = prev_sigmas
+            next_weights = prev_weights
+        # 绘制
+        x_show, y_show = np.mgrid[-10:10:.1, -10:10:.1]
+        x_show_flatten = x_show.flatten()
+        y_show_flatten = y_show.flatten()
+        gmm_pd = gaussian_mixture_model(next_mus, next_sigmas, next_weights,
+                                        np.vstack((x_show_flatten, y_show_flatten)))
+        gmm_pd_show = gmm_pd.reshape(200, 200)
+        # print(gmm_pd)
+        plt.figure("gmm_contour_results")
+        colors = ['green', 'red', 'blue', 'orange']
+        # print(gmm_pd.shape)
+        plt.contour(x_show, y_show, gmm_pd_show)
+        plt.scatter(data[0, :], data[1, :], s=1)
+        # plt.scatter(data[0, :], data[], rv.pdf(pos))
+        plt.show()
+
+    return next_mus, next_sigmas, next_weights
 
 # 主函数
 def processing():
     # 产生数据
-    mus = np.array([[1, 1], [2, 5], [5, 5], [5, 3]])
-    sigmas = np.array([[[0.5, 0], [0, 0.5]], [[0.5, 0], [0, 0.2]], [[0.3, 0], [0, 0.3]], [[0.1, 0], [0, 0.3]]])
+    mus = np.array([[-3, 4], [0, 0], [3, 4]])
+    sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
     num = 1000
-    component_rate = np.array([0.3, 0.3, 0.2, 0.2])
+    component_rate = np.array([0.3, 0.3, 0.4])
     data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
     # 计算与更新
-    initial_mus = np.array([[0, 1], [2, 1], [3, 1], [4, 1]])
-    initial_sigmas = np.array([[[1, 0], [0, 1]], [[1, 0], [0, 1]], [[1, 0], [0, 1]], [[1, 0], [0, 1]]])
+    initial_mus = np.array([[-5, -1], [-1, -1], [4, -1]])
+    initial_sigmas = np.array([[[1, 0], [0, 1]], [[1, 0], [0, 1]], [[1, 0], [0, 1]]])
     initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
-
+    start_time = time.time()
+    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=8)
+    end_time = time.time()
+    print(end_time - start_time)
+    return mus_results, sigmas_results, weights_results
 
 # -------------------------------- 以下为测试 --------------------------------
 # 对于 generate_gmm_data(mus, sigmas, num, component_rate)的测试
@@ -115,15 +187,20 @@ def gaussian_mixture_model_test():
     num = 1000
     component_rate = np.array([0.3, 0.3, 0.2, 0.2])
     data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
-    print(data.shape)
-    gmm_pd = gaussian_mixture_model(mus, sigmas, component_rate, data)
+
+    x_show, y_show = np.mgrid[-10:10:.1, -10:10:.1]
+    x_show_flatten = x_show.flatten()
+    y_show_flatten = y_show.flatten()
+    mus_initial = np.array([[-5, 1], [-1, 1], [3, 1], [5, 1]], dtype=float)
+    sigmas_initial = np.array([[[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]], [[0.25, 0], [0, 0.25]]], dtype=float)
+    component_rete_initial = np.array([0.25, 0.25, 0.25, 0.25])
+    gmm_pd = gaussian_mixture_model(mus_initial, sigmas_initial, component_rete_initial, np.vstack((x_show_flatten, y_show_flatten)))
+    gmm_pd_show = gmm_pd.reshape(200, 200)
     # print(gmm_pd)
     plt.figure("gmm_contour_results")
     colors = ['green', 'red', 'blue', 'orange']
-    print(data[0, :].shape)
-    print(data[1, :].shape)
-    print(gmm_pd.shape)
-    plt.contour(data[0, :], data[1, :], gmm_pd)
+    # print(gmm_pd.shape)
+    plt.contour(x_show, y_show, gmm_pd_show)
     plt.scatter(data[0, :], data[1, :], s=1, c=[colors[int(Z[i]%len(colors))] for i in range(num)])
     # plt.scatter(data[0, :], data[], rv.pdf(pos))
     plt.show()
@@ -143,4 +220,6 @@ if __name__ == '__main__':
     # print(true)
     # a = gaussian(np.array([0.5, -0.2]), np.array([[2.0, 0], [0, 0.5]]), np.array([[0, 0.5, 1, 2, 3, 4, 5], [0, -0.2, 1, 2, 3, 4, 5]]))
     # print(a)
-    gaussian_mixture_model_test()
+    # gaussian_mixture_model_test()
+    mus, sigmas, weights = processing()
+    print("mus:", mus, "sigmas:", sigmas, "weights:", weights)
