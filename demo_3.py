@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 import mpl_toolkits.mplot3d
 
+mus_for_draw = np.array([[-3, 4], [0, 0], [3, 4]])
 add_4_valid = 0.01
 # 每个产生的高斯的个数为多少
 # 产生的数据存在着一定数量的偏差，不是严格按照一定比例
@@ -26,7 +27,8 @@ def create_num_of_each_gaussian(component_rate, num, is_offset = True):
 # 生成数据
 # mu:均值, sigma:协方差 num：数据的数量 dim:数据的维度
 def generate_gaussian_data(mu, sigma, num):
-    dim = sigma.shape
+    dim = mu.shape[0]
+    sigma = sigma * np.identity(dim, dtype = np.float)
     data = np.random.multivariate_normal(mu, sigma, num).T
     return data
 
@@ -59,14 +61,11 @@ def generate_gmm_data(mus, sigmas, num, component_rate):
 # 概率模型 高斯模型，n维高斯
 # mu是:1行*dim维,sigma是:dim维度*dim维的数据,x是dim维*n个的数据
 def gaussian(mu, sigma, data):
-    dim = sigma.shape[0]
+    dim = mu.shape[0]
+    sigma = sigma * np.identity(dim, dtype=np.float)
     pos = np.empty((1,) + (data.shape[1], ) + (dim,))
     for i in range(dim):
         pos[:, :, i] = data[i, :]
-    # print(sigma)
-    # print("行列式:", np.linalg.det(sigma))
-    # if np.linalg.det(sigma) == 0.:
-    #     sigma += np.array([[add_4_valid, 0.], [0., add_4_valid]])
     rv = stats.multivariate_normal(mu, sigma)
     return rv.pdf(pos)
 
@@ -90,7 +89,7 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
     prev_weights = initial_weights
 
     next_mus = np.zeros(initial_mus.shape, dtype=np.float)
-    next_sigmas = np.zeros(initial_sigmas.shape, dtype=np.float)
+    next_sigmas = np.zeros(len(initial_sigmas), dtype=np.float)
     next_weights = np.zeros(initial_weights.shape, dtype=np.float)
 
     N = len(data[0])
@@ -120,7 +119,8 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
                 covariances = np.zeros([dim, dim, N])
                 for i in range(N):
                     covariances[:, :, i] = zero_mean_data[i,:].reshape(1, -1).T * zero_mean_data[i,:].reshape(1, -1) * response[i, l]
-                next_sigmas[l, :, :] = np.sum(covariances, axis=2) / np.sum(response[:, l])
+                next_sigmas_temp = np.sum(covariances, axis=2) / np.sum(response[:, l])
+                next_sigmas[l] = np.sum(next_sigmas_temp.diagonal()) / (next_sigmas_temp.shape[0])
             prev_mus = next_mus
             prev_sigmas = next_sigmas
             prev_weights = next_weights
@@ -139,6 +139,7 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
             gmm_pd_show = gmm_pd.reshape(200, 200)
             plt.figure("gmm_contour_results")
             plt.axis("equal")
+            plt.scatter(mus_for_draw[:, 0], mus_for_draw[:, 1])
             plt.contour(x_show, y_show, gmm_pd_show)
             plt.scatter(next_mus[:, 0], next_mus[:, 1], s=10, c='red')
             plt.scatter(data[0, :], data[1, :], s=1)
@@ -154,7 +155,6 @@ def generate_gmm_data_test():
     num = 1000
     component_rate = np.array([0.3, 0.3, 0.2, 0.2])
     data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
-    plt.figure("generated_data_results")
     colors = ['green', 'red', 'blue', 'orange']
     plt.scatter(data[0, :], data[1, :], s=1, c=[colors[int(Z[i]%len(colors))] for i in range(num)])
     plt.show()
@@ -163,7 +163,8 @@ def generate_gmm_data_test():
 def processing():
     # 产生数据
     mus = np.array([[-3, 4], [0, 0], [3, 4]])
-    sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
+    # sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
+    sigmas = np.array([2, 2, 2])
     num = 1000
     component_rate = np.array([0.3, 0.3, 0.4])
     data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
@@ -175,8 +176,8 @@ def processing():
     mu_3 = data[:, z_2[int(np.floor(len(z_2) / 2))]].flatten()
     # 计算与更新
     # 现在的mu是某三个点作为质心 即均值
-    initial_mus = np.array([mu_1, mu_2, mu_3], dtype=np.float)
-    initial_sigmas = np.array([[[0.5, 0], [0, 0.5]], [[0.5, 0], [0, 0.5]], [[0.5, 0], [0, 0.5]]], dtype=np.float)
+    initial_mus = np.array([mus[0], mus[1], mus[2]], dtype=np.float)
+    initial_sigmas = np.array([0.5, 0.5, 0.5], dtype=np.float)
     initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
     start_time = time.time()
     mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20)

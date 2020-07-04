@@ -44,14 +44,6 @@ def my_gaussian_test(mu, sigma, data):
 
 
 if __name__ == '__main__':
-    x, y = np.mgrid[-5:5:0.1, -5:5:0.1]
-    data = np.vstack((x.flatten().reshape([1, -1]), y.flatten().reshape([1, -1])))
-    mu = np.array([2, 2])
-    sigma = np.array([[1, 0], [0, 1]])
-    sigma_scalar = 1
-    pdf = my_gaussian_test(mu, sigma_scalar, data)
-    print(pdf)
-    pdf = pdf.reshape([100, 100])
-    plt.axis("equal")
-    plt.contour(x, y, pdf)
-    plt.show()
+  a = np.array([[2], [2], [2]])
+  b = np.array([[2, 2, 2]])
+  print(np.dot(b, a))
