@@ -14,29 +14,44 @@ def gaussian(mu, sigma, data):
     pos = np.empty((1,) + (data.shape[1], ) + (dim,))
     for i in range(dim):
         pos[:, :, i] = data[i, :]
-    # print(sigma)
-    # print("行列式:", np.linalg.det(sigma))
-    # if np.linalg.det(sigma) == 0.:
-    #     sigma += np.array([[add_4_valid, 0.], [0., add_4_valid]])
     rv = stats.multivariate_normal(mu, sigma)
     return rv.pdf(pos)
 
-def gaussian_test(mu, sigma, data):
-    gaussian(mu, sigma, data)
-    return
-
+# 现在sigma就是个scalar
 def my_gaussian(mu, sigma, data):
+    dim = mu.shape[0]
+    pos = np.empty((1,) + (data.shape[1], ) + (dim,))
+    for i in range(dim):
+        pos[:, :, i] = data[i, :]
+    cov_sigma = np.identity(dim, dtype=np.float)
+    print(cov_sigma)
+    cov_sigma = cov_sigma * sigma
+    mu_re = mu.reshape([1, 1, dim])
+    print(pos.shape)
+    print(mu_re.shape)
+    print(cov_sigma.shape)
+    A = 1 / (2 * np.pi) ** (dim / 2) * (1 / np.linalg.det(cov_sigma) ** (1 / 2))
+    B = np.exp((-1 / 2) * np.dot(np.dot((pos - mu_re).T, np.linalg.inv(cov_sigma)), (pos - mu_re)))
+    return A * B
 
-    return
+def gaussian_test(mu, sigma, data):
 
+    return gaussian(mu, sigma, data)
 
 def my_gaussian_test(mu, sigma, data):
-    return
+    return my_gaussian(mu, sigma, data)
+
+
 
 if __name__ == '__main__':
     x, y = np.mgrid[-5:5:0.1, -5:5:0.1]
-    print(x.flatten().reshape[1, -1])
-    data = np.vstack((x.flatten().reshape[1, -1], y.flatten().reshape[1, -1]))
-    mu = np.array([5, 5])
+    data = np.vstack((x.flatten().reshape([1, -1]), y.flatten().reshape([1, -1])))
+    mu = np.array([2, 2])
     sigma = np.array([[1, 0], [0, 1]])
-    gaussian(mu, sigma, 1)
+    sigma_scalar = 1
+    pdf = my_gaussian_test(mu, sigma_scalar, data)
+    print(pdf)
+    pdf = pdf.reshape([100, 100])
+    plt.axis("equal")
+    plt.contour(x, y, pdf)
+    plt.show()
