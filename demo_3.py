@@ -89,6 +89,8 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
     prev_sigmas = initial_sigmas
     prev_weights = initial_weights
 
+    cost_time = 0
+
     next_mus = np.zeros(initial_mus.shape, dtype=np.float)
     next_sigmas = np.zeros(len(initial_sigmas), dtype=np.float)
     next_weights = np.zeros(initial_weights.shape, dtype=np.float)
@@ -109,12 +111,15 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
             response = response / response_sum
 
             # 更新权重 weight^(i+1)
+            t_1 = time.time()
             next_weights = np.sum(response, axis=0) / N
+            t_2 = time.time()
             # 更新均值 next_mus^(i+1) 现在就不更新了 均值不会变化
             # for l in range(k):
             #         next_mus[l, :] = np.sum(data.T * (response[:, l].reshape(-1, 1)), axis=0) / np.sum(response[:, l])
 
             # 更新sigma
+            t_3 = time.time()
             for l in range(k):
                 zero_mean_data = data.T - next_mus[l, :].reshape(1, -1)
                 covariances = np.zeros([dim, dim, N])
@@ -122,6 +127,8 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
                     covariances[:, :, i] = zero_mean_data[i,:].reshape(1, -1).T * zero_mean_data[i,:].reshape(1, -1) * response[i, l]
                 next_sigmas_temp = np.sum(covariances, axis=2) / np.sum(response[:, l])
                 next_sigmas[l] = np.sum(next_sigmas_temp.diagonal()) / (next_sigmas_temp.shape[0])
+            t_4 = time.time()
+            cost_time += t_4 - t_3
             prev_mus = next_mus
             prev_sigmas = next_sigmas
             prev_weights = next_weights
@@ -145,6 +152,7 @@ def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 2
             plt.scatter(next_mus[:, 0], next_mus[:, 1], s=10, c='red')
             plt.scatter(data[0, :], data[1, :], s=1)
             plt.show()
+    print("更新sigma的耗时:", cost_time)
     return next_mus, next_sigmas, next_weights
 
 
@@ -231,5 +239,8 @@ if __name__ == '__main__':
     # a = gaussian(np.array([0.5, -0.2]), np.array([[2.0, 0], [0, 0.5]]), np.array([[0, 0.5, 1, 2, 3, 4, 5], [0, -0.2, 1, 2, 3, 4, 5]]))
     # print(a)
     # gaussian_mixture_model_test()
+    start_time = time.time()
     mus, sigmas, weights = processing_2()
+    end_time = time.time()
+    print(end_time - start_time)
     print("mus:", mus, "sigmas:", sigmas, "weights:", weights)
