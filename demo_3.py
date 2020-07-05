@@ -84,6 +84,7 @@ def gaussian_mixture_model(mus, sigmas, alphas, data):
 
 # E-M algorithm
 def EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter = 20, is_draw = True):
+    print("ori_input_data_shape", data.shape)
     prev_mus = initial_mus
     prev_sigmas = initial_sigmas
     prev_weights = initial_weights
@@ -160,6 +161,7 @@ def generate_gmm_data_test():
     plt.show()
 
 # 每个生成的component中选一个点作为质心
+# 生成数据是二维的
 def processing():
     # 产生数据
     mus = np.array([[-3, 4], [0, 0], [3, 4]])
@@ -180,11 +182,39 @@ def processing():
     initial_sigmas = np.array([0.5, 0.5, 0.5], dtype=np.float)
     initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
     start_time = time.time()
-    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20)
+    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20, is_draw=True)
     end_time = time.time()
     print(end_time - start_time)
     return mus_results, sigmas_results, weights_results
 
+# 每个生成的component中选一个点作为质心
+# 数据是六维的 is设置为false 因为高维数据难以绘制
+def processing_2():
+    # 产生数据
+    mus = np.array([[-3, 4, 1, 1, 1, 1], [0, 0, 1, 1, 1, 1], [3, 4, 1, 1, 1, 1]])
+    # sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
+    sigmas = np.array([2, 2, 2])
+    num = 1000
+    component_rate = np.array([0.3, 0.3, 0.4])
+    data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
+
+    # z_0 = np.argwhere(Z == 0)
+    # z_1 = np.argwhere(Z == 1)
+    # z_2 = np.argwhere(Z == 2)
+    # mu_1 = data[:, z_0[int(np.floor(len(z_0) / 2))]].flatten()
+    # mu_2 = data[:, z_1[int(np.floor(len(z_1) / 2))]].flatten()
+    # mu_3 = data[:, z_2[int(np.floor(len(z_2) / 2))]].flatten()
+    # 计算与更新
+    # 现在的mu是某三个点作为质心 即均值
+    initial_mus = np.array([mus[0], mus[1], mus[2]], dtype=np.float)
+    initial_sigmas = np.array([0.5, 0.5, 0.5], dtype=np.float)
+    initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
+    start_time = time.time()
+    # 高维数据难以绘制
+    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20, is_draw=False)
+    end_time = time.time()
+    print(end_time - start_time)
+    return mus_results, sigmas_results, weights_results
 
 if __name__ == '__main__':
 
@@ -201,5 +231,5 @@ if __name__ == '__main__':
     # a = gaussian(np.array([0.5, -0.2]), np.array([[2.0, 0], [0, 0.5]]), np.array([[0, 0.5, 1, 2, 3, 4, 5], [0, -0.2, 1, 2, 3, 4, 5]]))
     # print(a)
     # gaussian_mixture_model_test()
-    mus, sigmas, weights = processing()
+    mus, sigmas, weights = processing_2()
     print("mus:", mus, "sigmas:", sigmas, "weights:", weights)
