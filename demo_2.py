@@ -189,6 +189,31 @@ def processing():
     return mus_results, sigmas_results, weights_results
 
 
+# 每个生成的component中选一个点作为质心
+def processing_1_1():
+    # 产生数据
+    mus = np.array([[-3, 4], [0, 0], [3, 4]])
+    sigmas = np.array([[[2, 0], [0, 1]], [[2, 0], [0, 1]], [[2, 0], [0, 1]]])
+    num = 100
+    component_rate = np.array([0.3, 0.3, 0.4])
+    data, Z = generate_gmm_data(mus, sigmas, num, component_rate)
+    z_0 = np.argwhere(Z == 0)
+    z_1 = np.argwhere(Z == 1)
+    z_2 = np.argwhere(Z == 2)
+    mu_1 = data[:, z_0[int(np.floor(len(z_0) / 2))]].flatten()
+    mu_2 = data[:, z_1[int(np.floor(len(z_1) / 2))]].flatten()
+    mu_3 = data[:, z_2[int(np.floor(len(z_2) / 2))]].flatten()
+    # 计算与更新
+    # 现在的mu是某三个点作为质心 即均值
+    initial_mus = data.T
+    initial_sigmas = np.array([[[1, 0], [0, 1]] for temp_i in range(int(len(initial_mus)))], dtype=np.float)
+    initial_weights = np.ones(len(initial_mus)) / len(initial_mus)
+    start_time = time.time()
+    mus_results, sigmas_results, weights_results = EM_algorithm(data, initial_mus, initial_sigmas, initial_weights, MaxIter=20)
+    end_time = time.time()
+    print(end_time - start_time)
+    return mus_results, sigmas_results, weights_results
+
 if __name__ == '__main__':
 
     # x, y = np.mgrid[-10:10:.1, -10:10:.1]
@@ -204,5 +229,5 @@ if __name__ == '__main__':
     # a = gaussian(np.array([0.5, -0.2]), np.array([[2.0, 0], [0, 0.5]]), np.array([[0, 0.5, 1, 2, 3, 4, 5], [0, -0.2, 1, 2, 3, 4, 5]]))
     # print(a)
     # gaussian_mixture_model_test()
-    mus, sigmas, weights = processing()
+    mus, sigmas, weights = processing_1_1()
     print("mus:", mus, "sigmas:", sigmas, "weights:", weights)
